@@ -15,18 +15,19 @@ edge_start = None
 def start_edge(event):
     global edge_start
     closest = canvas.find_closest(event.x, event.y)
-    if closest and (canvas.type(closest[0]) == 'oval' or canvas.type(closest[0] == 'text')):  # Check if the closest item is a vertex
+    while closest and canvas.type(closest[0]) not in ['oval', 'text']:  # Check if the closest item is a vertex
+        closest = canvas.find_closest(event.x + 1, event.y + 1)  # Find the next closest item
+    if closest:
         edge_start = closest[0]
+        print('Edge start:', edge_start)
 
 def stop_edge(event):
     global edge_start
-    if edge_start is not None:
+    if edge_start is not None and canvas.type(edge_start) == 'oval':
         closest = canvas.find_closest(event.x, event.y)
-        for item in closest:
-            if canvas.type(item) == 'line':
-                closest.remove(item)
-
-        if closest and (canvas.type(closest[0]) == 'oval' or canvas.type(closest[0] == 'text')):  # Check if the closest item is a vertex
+        while closest and canvas.type(closest[0]) not in ['oval', 'text']:  # Check if the closest item is a vertex
+            closest = canvas.find_closest(event.x + 1, event.y + 1)  # Find the next closest item
+        if closest and canvas.type(closest[0]) in ['oval', 'text']:
             if edge_start == closest[0]:  # Check if the edge starts and ends at the same vertex
                 return  # Do not create an edge if it starts and ends at the same vertex
             x1, y1, _, _ = canvas.coords(edge_start)

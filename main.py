@@ -30,42 +30,6 @@ def generate_subgraphs(G):
 
     return subgraphs
 
-    # Function L(x, y)
-    def L(x, y):
-        if x == y:
-            return 1
-        elif x < y:
-            return -sum_M(x, y)
-        return 0
-    
-    # Sum of M(x, y) for all x < y
-    def sum_M(x, y):
-        sum_m = 0
-        for i in range(x):
-            for j in range(i + 1, x):
-                sum_m += M_values.get((i, j), 0)
-        return sum_m
-    
-    # Calculate M for all subgraphs
-    def calculate_M_values(G):
-        M_values = {}
-        for k in range(len(G.edges) + 1):
-            for subset in combinations(G.edges, k):
-                subgraph = nx.Graph(subset)
-                num_components = nx.number_connected_components(subgraph)
-                M_values[subset] = n ** num_components
-        return M_values
-    
-    # Calculate M(G)
-    M_values = calculate_M_values(G)
-    M_sum = 0
-    for subset in combinations(G.edges, len(G.edges)):
-        subgraph = nx.Graph(subset)
-        num_components = nx.number_connected_components(subgraph)
-        M_sum += L(len(subset), len(G.edges)) * (n ** num_components)
-    
-    return M_sum
-
 def calculate_rank(graph):
     # Number of vertices
     num_vertices = graph.number_of_nodes()
@@ -131,25 +95,28 @@ def chromatic_polynomial(G, colors):
 
 def chromatic_polynomial_coefficients(G):
     if G.number_of_edges() == 0:
-        # If G has no edges, the chromatic polynomial is x^n
-        return [0] * G.number_of_nodes() + [1]
+        return {G.number_of_nodes(): 1}
     else:
-        # Choose an arbitrary edge
-        u, v = next(iter(G.edges()))  # Convert EdgeView to iterator
+        u, v = next(iter(G.edges()))
 
-        # Construct G' by deleting the edge
         G_prime = G.copy()
         G_prime.remove_edge(u, v)
 
-        # Construct G'' by contracting the edge
         G_double_prime = nx.contracted_edge(G, (u, v), self_loops=False)
 
-        # Recursively calculate the coefficients of the chromatic polynomials of G' and G''
         coeffs_prime = chromatic_polynomial_coefficients(G_prime)
         coeffs_double_prime = chromatic_polynomial_coefficients(G_double_prime)
 
-        # The coefficients of the chromatic polynomial of G are the difference of the coefficients of the chromatic polynomials of G' and G''
-        return [c_prime - c_double_prime for c_prime, c_double_prime in zip_longest(coeffs_prime, coeffs_double_prime, fillvalue=0)]
+        coefficients = {}
+        for key in coeffs_prime:
+            coefficients[key] = coeffs_prime[key]
+        for key in coeffs_double_prime:
+            if key in coefficients:
+                coefficients[key] -= coeffs_double_prime[key]
+            else:
+                coefficients[key] = -coeffs_double_prime[key]
+        
+        return coefficients
     
 def chromatic_polynomial_formula(G):
     
@@ -166,6 +133,7 @@ def chromatic_polynomial_formula(G):
     return coefficients
 
 def write_formula(coefficients):
+    superscripts = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
     formula = ""
     for key in sorted(coefficients.keys(), reverse=True):
         if coefficients[key] == 0:
@@ -179,5 +147,5 @@ def write_formula(coefficients):
         if key > 0:
             formula += "n"
             if key > 1:
-                formula += "^" + str(key)
+                formula += str(key).translate(superscripts)
     return formula
